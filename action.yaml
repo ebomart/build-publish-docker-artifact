@@ -66,7 +66,7 @@
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
       
-      - id: Set execute permission
+      - id: set-execute-permission
         shell: bash
         run: chmod +x ${{ github.action_path }}/trivy-docker-image-scan.sh
           
