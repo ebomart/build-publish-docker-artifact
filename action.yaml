@@ -12,7 +12,7 @@
       gke_project:
         description: "Name of gke project"
         required: true
-      repository_name:
+      repository:
         description: "Name of the artifact repository"
         required: true
       image_name:
@@ -74,14 +74,14 @@
           NPM_TOKEN: ${{ inputs.npm_token }}
         shell: bash
         run: |
-          docker build ${{ inputs.docker_build_args }} -t "${{ inputs.registry_host }}/${{ inputs.gke_project }}/${{repository_name}}/${{ inputs.image_name }}:${{ inputs.sha }}" .
+          docker build ${{ inputs.docker_build_args }} -t "${{ inputs.registry_host }}/${{ inputs.gke_project }}/${{ inputs.repository }}/${{ inputs.image_name }}:${{ inputs.sha }}" .
 
           
       # Push the Docker image to Google Container Registry
       - id: publish-to-registry
         shell: bash
         run: |
-          docker push ${{ inputs.registry_host }}/${{ inputs.gke_project }}/${{repository_name}}/${{ inputs.image_name }}:${{ inputs.sha }}
+          docker push ${{ inputs.registry_host }}/${{ inputs.gke_project }}/${{ inputs.repository }}/${{ inputs.image_name }}:${{ inputs.sha }}
             
       # - id: check-image-exists
       #   shell: bash
