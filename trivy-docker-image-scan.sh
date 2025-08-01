@@ -48,7 +48,7 @@ get_docker_image_name() {
 # Alternative scanning function using tar export (if Docker socket issues persist)
 scan_docker_image_tar() {
     local docker_image_name=$1
-    local temp_dir="/tmp/trivy-scan-$"
+    local temp_dir="/tmp/trivy-scan-$$"
     
     echo "Scanning image via tar export: $docker_image_name"
     
@@ -81,6 +81,37 @@ scan_docker_image_tar() {
     rm -rf "$temp_dir"
     
     return $exit_code
+}
+
+# Main scanning function with fallback options
+scan_docker_image() {
+    local docker_image_name=$1
+    
+    echo "Scanning image: $docker_image_name"
+    
+    # Ensure cache directory exists and handle empty WORKSPACE
+    if [[ -z "$CACHE_DIR" || "$CACHE_DIR" == "/:" ]]; then
+        CACHE_DIR="/tmp/.trivy-cache"
+    fi
+    mkdir -p "$CACHE_DIR"
+    
+    # Method 1: Try with Docker socket (preferred)
+    if [[ -S "/var/run/docker.sock" ]]; then
+        echo "Using Docker socket method..."
+        docker run --rm \
+            -v "$CACHE_DIR:/root/.cache/" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            "aquasec/trivy:$TRIVY_VERSION" \
+            image \
+            --exit-code 1 \
+            --severity "$SEVERITY_LEVELS" \
+            --quiet \
+            "$docker_image_name" && return 0
+    fi
+    
+    # Method 2: Fallback to tar export method
+    echo "Docker socket method failed, trying tar export method..."
+    scan_docker_image_tar "$docker_image_name"
 }
 
 # Main execution (simplified to match your current workflow)
