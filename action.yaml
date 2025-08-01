@@ -66,12 +66,6 @@
         run: |
           gcloud auth configure-docker us-docker.pkg.dev
       
-      - id: set-execute-permission
-        shell: bash
-        run: chmod +x ${{ github.action_path }}/trivy-docker-image-scan.sh
-          
-      - run: ${{ github.action_path }}/trivy-docker-image-scan.sh
-        shell: bash
         
       - id: docker-build
         env:
@@ -80,7 +74,13 @@
         run: |
           docker build ${{ inputs.docker_build_args }} -t "${{ inputs.registry_host }}/${{ inputs.gke_project }}/${{ inputs.repository }}/${{ inputs.image_name }}:${{ inputs.sha }}" .
 
+      - id: set-execute-permission
+        shell: bash
+        run: chmod +x ${{ github.action_path }}/trivy-docker-image-scan.sh
           
+      - run: ${{ github.action_path }}/trivy-docker-image-scan.sh
+        shell: bash
+
       # Push the Docker image to Google Container Registry
       - id: publish-to-registry
         shell: bash
