@@ -45,27 +45,42 @@ get_docker_image_name() {
     return 1
 }
 
-# Main scanning function (updated for latest Trivy version)
-scan_docker_image() {
+# Alternative scanning function using tar export (if Docker socket issues persist)
+scan_docker_image_tar() {
     local docker_image_name=$1
+    local temp_dir="/tmp/trivy-scan-$"
     
-    echo "Scanning image: $docker_image_name"
+    echo "Scanning image via tar export: $docker_image_name"
     
-    # Ensure cache directory exists and handle empty WORKSPACE
-    if [[ -z "$CACHE_DIR" || "$CACHE_DIR" == "/:" ]]; then
-        CACHE_DIR="/tmp/.trivy-cache"
+    mkdir -p "$temp_dir"
+    
+    # Export image to tar file
+    echo "Exporting image to tar file..."
+    docker save "$docker_image_name" -o "$temp_dir/image.tar"
+    
+    if [[ ! -f "$temp_dir/image.tar" ]]; then
+        echo "Error: Failed to export image to tar file"
+        rm -rf "$temp_dir"
+        exit 1
     fi
-    mkdir -p "$CACHE_DIR"
     
-    # Run Trivy scan with updated command structure for latest version
+    # Scan the tar file
     docker run --rm \
         -v "$CACHE_DIR:/root/.cache/" \
+        -v "$temp_dir:/tmp/scan" \
         "aquasec/trivy:$TRIVY_VERSION" \
         image \
         --exit-code 1 \
         --severity "$SEVERITY_LEVELS" \
         --quiet \
-        "$docker_image_name"
+        --input /tmp/scan/image.tar
+    
+    local exit_code=$?
+    
+    # Cleanup
+    rm -rf "$temp_dir"
+    
+    return $exit_code
 }
 
 # Main execution (simplified to match your current workflow)
